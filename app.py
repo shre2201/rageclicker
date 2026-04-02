@@ -6,7 +6,7 @@ import requests as http
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-TURSO_URL   = os.environ.get("TURSO_URL", "").rstrip("/")
+TURSO_URL   = os.environ.get("TURSO_URL", "").rstrip("/").replace("libsql://", "https://")
 TURSO_TOKEN = os.environ.get("TURSO_TOKEN", "")
 USE_TURSO   = bool(TURSO_URL and TURSO_TOKEN)
 
