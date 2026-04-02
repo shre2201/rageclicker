@@ -1,0 +1,256 @@
+{% extends "site/base.html" %}
+{% block title %}Shop — Voltra Electronics{% endblock %}
+
+{% block head %}
+<style>
+  .page-header { padding: 3rem 0 2rem; }
+  .page-header h1 { font-size: 2rem; font-weight: 300; letter-spacing: -.02em; }
+  .page-header p { color: var(--muted); margin-top: .5rem; }
+
+  .filter-bar {
+    display: flex; gap: .5rem; flex-wrap: wrap;
+    margin-bottom: 2rem;
+  }
+  .filter-btn {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 2rem; padding: .35rem .9rem;
+    font-family: inherit; font-size: .8rem; color: var(--muted);
+    cursor: pointer; transition: all .15s;
+  }
+  .filter-btn.active, .filter-btn:hover {
+    border-color: var(--accent); color: var(--accent);
+  }
+
+  .products {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 3rem;
+  }
+  .product {
+    background: var(--surface);
+    padding: 1.5rem;
+  }
+  .product-img {
+    width: 100%; aspect-ratio: 1;
+    background: var(--bg);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Space Mono', monospace;
+    font-size: .7rem; color: var(--muted);
+    margin-bottom: 1rem;
+    letter-spacing: .04em;
+    cursor: zoom-in; /* implies it should zoom — but won't */
+  }
+  .product-cat {
+    font-size: .7rem; color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    letter-spacing: .06em; text-transform: uppercase;
+    margin-bottom: .4rem;
+  }
+  .product h3 { font-size: 1rem; font-weight: 500; margin-bottom: .25rem; }
+  .product-price {
+    font-size: 1.05rem; font-weight: 600;
+    color: var(--accent);
+    margin: .75rem 0;
+  }
+  .product-price del { font-weight: 400; color: var(--muted); font-size: .85rem; margin-right: .4rem; }
+  .product-actions { display: flex; gap: .5rem; }
+
+  /* broken add-to-cart */
+  .btn-cart {
+    flex: 1;
+    padding: .55rem 1rem;
+    background: var(--accent); color: #000;
+    border: none; border-radius: var(--radius);
+    font-family: inherit; font-size: .85rem; font-weight: 500;
+    cursor: pointer;
+  }
+
+  /* working wishlist */
+  .btn-wish {
+    padding: .55rem .75rem;
+    background: transparent; color: var(--muted);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    font-family: inherit; font-size: .85rem;
+    cursor: pointer; transition: all .15s;
+  }
+  .btn-wish:hover { border-color: var(--text); color: var(--text); }
+
+  .stock-warn {
+    font-size: .75rem; color: var(--danger);
+    margin-bottom: .5rem;
+  }
+
+  /* Sort — broken dropdown */
+  .toolbar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 1.5rem;
+  }
+  .sort-select {
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); font-family: inherit; font-size: .85rem;
+    padding: .4rem .75rem; border-radius: var(--radius);
+    cursor: pointer; appearance: none;
+    min-width: 140px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="page-header">
+    <h1>All products</h1>
+    <p>24 items · Free shipping above ₹999</p>
+  </div>
+
+  <div class="filter-bar">
+    <button class="filter-btn active">All</button>
+    <button class="filter-btn">Headphones</button>
+    <button class="filter-btn">Earbuds</button>
+    <button class="filter-btn">Speakers</button>
+    <button class="filter-btn">Cables</button>
+    <!-- BROKEN: filter does nothing -->
+    <button class="filter-btn" id="filter-sale">On sale</button>
+  </div>
+
+  <div class="toolbar">
+    <span style="font-size:.85rem;color:var(--muted)">Showing 8 of 24</span>
+    <!-- BROKEN: sort dropdown changes but products don't reorder -->
+    <select class="sort-select" id="sort-select">
+      <option>Sort: Featured</option>
+      <option>Price: Low to high</option>
+      <option>Price: High to low</option>
+      <option>Newest first</option>
+    </select>
+  </div>
+
+  <div class="products" id="product-grid">
+
+    <div class="product">
+      <div class="product-img" id="img-1">[ HEADPHONES ]</div>
+      <div class="product-cat">Headphones</div>
+      <h3>Studio Pro X1</h3>
+      <div class="stock-warn">Only 2 left!</div>
+      <div class="product-price"><del>₹10,999</del> ₹8,999</div>
+      <div class="product-actions">
+        <button class="btn-cart" data-pid="1">Add to cart</button>
+        <button class="btn-wish">♡</button>
+      </div>
+    </div>
+
+    <div class="product">
+      <div class="product-img" id="img-2">[ EARBUDS ]</div>
+      <div class="product-cat">Earbuds</div>
+      <h3>Air Pod Mini 3</h3>
+      <div class="product-price">₹5,499</div>
+      <div class="product-actions">
+        <button class="btn-cart" data-pid="2">Add to cart</button>
+        <button class="btn-wish">♡</button>
+      </div>
+    </div>
+
+    <div class="product">
+      <div class="product-img" id="img-3">[ SPEAKER ]</div>
+      <div class="product-cat">Speakers</div>
+      <h3>Boom Station 360</h3>
+      <div class="product-price">₹12,999</div>
+      <div class="product-actions">
+        <!-- BROKEN: out of stock but button still shows -->
+        <button class="btn-cart" data-pid="3">Add to cart</button>
+        <button class="btn-wish">♡</button>
+      </div>
+    </div>
+
+    <div class="product">
+      <div class="product-img" id="img-4">[ CABLE ]</div>
+      <div class="product-cat">Cables</div>
+      <h3>USB-C Braid 2m</h3>
+      <div class="product-price">₹799</div>
+      <div class="product-actions">
+        <button class="btn-cart" data-pid="4">Add to cart</button>
+        <button class="btn-wish">♡</button>
+      </div>
+    </div>
+
+    <div class="product">
+      <div class="product-img" id="img-5">[ AMP ]</div>
+      <div class="product-cat">Amplifiers</div>
+      <h3>Micro Amp V2</h3>
+      <div class="product-price"><del>₹6,500</del> ₹5,200</div>
+      <div class="product-actions">
+        <button class="btn-cart" data-pid="5">Add to cart</button>
+        <button class="btn-wish">♡</button>
+      </div>
+    </div>
+
+    <div class="product">
+      <div class="product-img" id="img-6">[ DAC ]</div>
+      <div class="product-cat">DAC / ADC</div>
+      <h3>ClearDAC USB</h3>
+      <div class="product-price">₹3,299</div>
+      <div class="product-actions">
+        <button class="btn-cart" data-pid="6">Add to cart</button>
+        <button class="btn-wish">♡</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Pagination — broken -->
+  <div style="display:flex;gap:.5rem;justify-content:center;margin-bottom:3rem">
+    <button class="filter-btn active">1</button>
+    <button class="filter-btn" id="page-2">2</button>
+    <button class="filter-btn" id="page-3">3</button>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Filter buttons — toggle active class but products don't actually filter
+  document.querySelectorAll(".filter-btn").forEach(btn => {
+    btn.addEventListener("click", function () {
+      document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+      this.classList.add("active");
+      // No actual filtering happens — intentional broken UX
+    });
+  });
+
+  // Sort dropdown — changes value but grid doesn't reorder
+  document.getElementById("sort-select").addEventListener("change", function() {
+    // intentionally does nothing
+  });
+
+  // Pagination pages 2&3 — broken (stay on same content)
+  ["page-2","page-3"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("click", () => {});
+  });
+
+  // Add to cart — product 3 is broken (out of stock), others work
+  document.querySelectorAll(".btn-cart").forEach(btn => {
+    btn.addEventListener("click", function () {
+      const pid = this.dataset.pid;
+      if (pid === "3") {
+        // silently fail — out of stock but no message
+        return;
+      }
+      this.textContent = "Added!";
+      this.style.background = "#22c55e";
+      setTimeout(() => {
+        this.textContent = "Add to cart";
+        this.style.background = "";
+      }, 1500);
+    });
+  });
+
+  // Product images — cursor says zoom-in but nothing happens
+  document.querySelectorAll(".product-img").forEach(img => {
+    img.addEventListener("click", () => {});
+  });
+</script>
+{% endblock %}

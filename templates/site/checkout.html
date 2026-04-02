@@ -1,0 +1,180 @@
+{% extends "site/base.html" %}
+{% block title %}Checkout — Voltra Electronics{% endblock %}
+{% block head %}
+<style>
+  .checkout-wrap { display: grid; grid-template-columns: 1.2fr 1fr; gap: 2rem; padding: 3rem 0; }
+  @media(max-width:760px){ .checkout-wrap{grid-template-columns:1fr;} }
+
+  .section-title {
+    font-family: 'Space Mono', monospace;
+    font-size: .7rem; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--muted);
+    margin-bottom: 1.25rem;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .field { margin-bottom: 1rem; }
+  .field label { display: block; font-size: .78rem; color: var(--muted); margin-bottom: .35rem; }
+  .field input, .field select {
+    width: 100%;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: .55rem .85rem;
+    color: var(--text); font-family: inherit; font-size: .85rem; outline: none;
+    transition: border-color .15s;
+  }
+  .field input:focus { border-color: var(--accent); }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+
+  /* Promo code — broken */
+  .promo-row { display: flex; gap: .5rem; }
+  .promo-row input { flex: 1; }
+  .btn-apply {
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); border-radius: var(--radius);
+    padding: .55rem 1rem; font-family: inherit; font-size: .85rem;
+    cursor: pointer; transition: all .15s; white-space: nowrap;
+  }
+  .btn-apply:hover { border-color: var(--muted); }
+  #promo-msg { font-size: .78rem; margin-top: .4rem; min-height: 1.2em; }
+
+  /* Order summary */
+  .order-item { display: flex; justify-content: space-between; align-items: center; padding: .75rem 0; border-bottom: 1px solid var(--border); }
+  .order-item:last-child { border-bottom: none; }
+  .item-name { font-size: .9rem; }
+  .item-price { font-size: .9rem; color: var(--accent); font-weight: 500; }
+  .item-qty { font-size: .75rem; color: var(--muted); }
+
+  .summary-row { display: flex; justify-content: space-between; padding: .4rem 0; font-size: .85rem; }
+  .summary-row.total { font-weight: 600; font-size: 1rem; border-top: 1px solid var(--border); padding-top: .85rem; margin-top: .25rem; }
+  .summary-row.total span:last-child { color: var(--accent); }
+
+  /* Pay button — slow on purpose */
+  .btn-pay {
+    width: 100%; padding: .85rem;
+    background: var(--accent); color: #000;
+    border: none; border-radius: var(--radius);
+    font-family: inherit; font-size: 1rem; font-weight: 600;
+    cursor: pointer; margin-top: 1.25rem;
+    transition: background .2s;
+    position: relative;
+  }
+  .btn-pay:hover { background: #fbbf24; }
+  .btn-pay:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+
+  .trust-badges {
+    display: flex; gap: .75rem; flex-wrap: wrap;
+    margin-top: 1rem;
+    font-size: .72rem; color: var(--muted);
+  }
+  .trust-badges span { display: flex; align-items: center; gap: .25rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="checkout-wrap">
+    <!-- Left: form -->
+    <div>
+      <div class="card">
+        <div class="section-title">Delivery address</div>
+        <div class="field"><label>Full name</label><input type="text" placeholder="Priya Mehta"></div>
+        <div class="field"><label>Phone</label><input type="tel" placeholder="+91 98765 43210"></div>
+        <div class="field"><label>Address line 1</label><input type="text" placeholder="Flat 4B, Sunrise Apartments"></div>
+        <div class="field"><label>Address line 2</label><input type="text" placeholder="MG Road"></div>
+        <div class="field-row">
+          <div class="field"><label>City</label><input type="text" placeholder="Mumbai"></div>
+          <div class="field"><label>PIN code</label><input type="text" placeholder="400001"></div>
+        </div>
+        <div class="field">
+          <label>State</label>
+          <select><option>Maharashtra</option><option>Karnataka</option><option>Tamil Nadu</option><option>Delhi</option></select>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Payment method</div>
+        <div class="field"><label>Card number</label><input type="text" placeholder="4242 4242 4242 4242" maxlength="19"></div>
+        <div class="field-row">
+          <div class="field"><label>Expiry</label><input type="text" placeholder="MM / YY" maxlength="7"></div>
+          <div class="field"><label>CVV</label><input type="text" placeholder="•••" maxlength="3"></div>
+        </div>
+        <div class="field"><label>Name on card</label><input type="text" placeholder="PRIYA MEHTA"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Promo code</div>
+        <div class="promo-row">
+          <input type="text" id="promo-input" placeholder="Enter code e.g. SAVE20">
+          <!-- BROKEN: always says invalid regardless of input -->
+          <button class="btn-apply" id="btn-apply">Apply</button>
+        </div>
+        <div id="promo-msg"></div>
+      </div>
+    </div>
+
+    <!-- Right: order summary -->
+    <div>
+      <div class="card" style="position:sticky;top:80px">
+        <div class="section-title">Order summary</div>
+        <div class="order-item">
+          <div><div class="item-name">Studio Pro X1</div><div class="item-qty">Qty: 1</div></div>
+          <div class="item-price">₹8,999</div>
+        </div>
+        <div class="order-item">
+          <div><div class="item-name">USB-C Braid 2m</div><div class="item-qty">Qty: 1</div></div>
+          <div class="item-price">₹799</div>
+        </div>
+
+        <div style="margin-top:1rem">
+          <div class="summary-row"><span>Subtotal</span><span>₹9,798</span></div>
+          <div class="summary-row"><span>Shipping</span><span style="color:#22c55e">Free</span></div>
+          <div class="summary-row"><span>GST (18%)</span><span>₹1,764</span></div>
+          <div class="summary-row total"><span>Total</span><span>₹11,562</span></div>
+        </div>
+
+        <!-- BROKEN: pay button takes 4 seconds to respond then does nothing -->
+        <button class="btn-pay" id="btn-pay">Pay ₹11,562</button>
+
+        <div class="trust-badges">
+          <span>🔒 Secure</span>
+          <span>↩ 30-day returns</span>
+          <span>⚡ Fast dispatch</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Promo code — always "invalid" to trigger frustration
+  document.getElementById("btn-apply").addEventListener("click", () => {
+    const msg = document.getElementById("promo-msg");
+    const code = document.getElementById("promo-input").value.trim();
+    if (!code) { msg.style.color = "var(--muted)"; msg.textContent = "Enter a promo code first."; return; }
+    msg.style.color = "var(--danger)";
+    msg.textContent = "Invalid or expired code. Try again.";
+  });
+
+  // Pay button — 4 second delay before doing nothing
+  document.getElementById("btn-pay").addEventListener("click", function () {
+    const btn = this;
+    if (btn.disabled) return;
+    btn.disabled = true;
+    btn.textContent = "Processing...";
+    // Hangs for 4s then resets — classic slow feedback
+    setTimeout(() => {
+      btn.textContent = "Pay ₹11,562";
+      btn.disabled = false;
+    }, 4000);
+  });
+</script>
+{% endblock %}

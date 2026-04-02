@@ -1,0 +1,211 @@
+{% extends "site/base.html" %}
+{% block title %}Voltra Electronics — Home{% endblock %}
+
+{% block head %}
+<style>
+  .hero {
+    padding: 5rem 0 4rem;
+    text-align: center;
+  }
+  .hero-tag {
+    display: inline-block;
+    font-family: 'Space Mono', monospace;
+    font-size: .7rem;
+    letter-spacing: .1em;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 2rem;
+    padding: .25rem .75rem;
+    margin-bottom: 1.5rem;
+    text-transform: uppercase;
+  }
+  .hero h1 {
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    font-weight: 300;
+    line-height: 1.1;
+    letter-spacing: -.03em;
+    margin-bottom: 1.25rem;
+  }
+  .hero h1 strong { font-weight: 600; }
+  .hero p {
+    color: var(--muted);
+    font-size: 1.05rem;
+    max-width: 480px;
+    margin: 0 auto 2rem;
+    line-height: 1.65;
+  }
+  .hero-btns { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+
+  .features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin: 3rem 0;
+  }
+  .feature {
+    background: var(--surface);
+    padding: 2rem;
+  }
+  .feature-icon {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    border-radius: 6px;
+    margin-bottom: 1rem;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+  }
+  .feature h3 { font-size: .95rem; margin-bottom: .5rem; }
+  .feature p { font-size: .85rem; color: var(--muted); line-height: 1.55; }
+
+  /* Newsletter section — broken submit */
+  .newsletter {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2.5rem;
+    text-align: center;
+    margin: 2rem 0;
+  }
+  .newsletter h2 { margin-bottom: .5rem; font-weight: 500; }
+  .newsletter p { color: var(--muted); font-size: .9rem; margin-bottom: 1.5rem; }
+  .input-row {
+    display: flex; gap: .5rem; max-width: 420px; margin: 0 auto;
+  }
+  .input-row input {
+    flex: 1; background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: .6rem 1rem;
+    color: var(--text); font-family: inherit; font-size: .875rem;
+    outline: none;
+  }
+  .input-row input:focus { border-color: var(--accent); }
+
+  /* Fake "clickable" image section */
+  .promos {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin: 2rem 0;
+  }
+  .promo-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: border-color .15s;
+  }
+  .promo-card:hover { border-color: var(--muted); }
+  .promo-img {
+    width: 100%; aspect-ratio: 4/3;
+    background: var(--border);
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Space Mono', monospace;
+    font-size: .7rem;
+    color: var(--muted);
+    letter-spacing: .05em;
+  }
+  .promo-card h4 { font-size: .9rem; margin-bottom: .25rem; }
+  .promo-card span { font-size: .8rem; color: var(--muted); }
+  .promo-badge {
+    display: inline-block;
+    background: var(--accent); color: #000;
+    font-size: .65rem; font-weight: 700;
+    padding: .15rem .5rem; border-radius: 3px;
+    margin-bottom: .5rem;
+    font-family: 'Space Mono', monospace;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="hero">
+    <div class="hero-tag">New arrivals 2025</div>
+    <h1>Audio that <strong>moves you</strong>.<br>Tech that lasts.</h1>
+    <p>Premium electronics engineered for clarity. Free shipping on orders over ₹999. 30-day returns, no questions asked.</p>
+    <div class="hero-btns">
+      <a href="/shop" class="btn btn-primary">Shop now</a>
+      <!-- BROKEN: looks like a button, does nothing -->
+      <button class="btn-broken" id="btn-deals">View deals</button>
+    </div>
+  </div>
+
+  <!-- Promo cards that look zoomable but aren't -->
+  <div class="promos">
+    <div class="promo-card" id="promo-1">
+      <div class="promo-img">[ HEADPHONES ]</div>
+      <div class="promo-badge">SALE</div>
+      <h4>Studio Pro X1</h4>
+      <span>₹8,999 · Click to zoom</span>
+    </div>
+    <div class="promo-card" id="promo-2">
+      <div class="promo-img">[ EARBUDS ]</div>
+      <div class="promo-badge">NEW</div>
+      <h4>Air Pod Mini 3</h4>
+      <span>₹5,499 · Click to zoom</span>
+    </div>
+    <div class="promo-card" id="promo-3">
+      <div class="promo-img">[ SPEAKER ]</div>
+      <div class="promo-badge">HOT</div>
+      <h4>Boom Station 360</h4>
+      <span>₹12,999 · Click to zoom</span>
+    </div>
+  </div>
+
+  <div class="features">
+    <div class="feature">
+      <div class="feature-icon">⚡</div>
+      <h3>Fast delivery</h3>
+      <p>Same-day dispatch on orders before 2 PM. Tracked courier across India.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🔒</div>
+      <h3>Secure payments</h3>
+      <p>UPI, cards, net banking. 256-bit encryption on every transaction.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">↩</div>
+      <h3>Easy returns</h3>
+      <!-- BROKEN: "Click here" looks like a link -->
+      <p>30-day hassle-free returns. <span id="return-link" style="color:var(--accent);cursor:pointer;text-decoration:underline">Click here</span> to start a return.</p>
+    </div>
+  </div>
+
+  <div class="newsletter">
+    <h2>Stay in the loop</h2>
+    <p>Get deals, product drops, and tech news straight to your inbox.</p>
+    <div class="input-row">
+      <input type="email" id="email-input" placeholder="your@email.com">
+      <!-- BROKEN: subscribe button silently fails -->
+      <button class="btn-broken" id="btn-subscribe">Subscribe</button>
+    </div>
+    <p id="sub-feedback" style="margin-top:.75rem;font-size:.8rem;color:var(--muted)"></p>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Promo images — clicking does nothing (users expect zoom)
+  document.querySelectorAll(".promo-card").forEach(c => {
+    c.addEventListener("click", e => e.stopPropagation());
+  });
+
+  // Return link — navigates nowhere
+  document.getElementById("return-link").addEventListener("click", () => {
+    // intentionally blank
+  });
+
+  // Subscribe — shows a spinner that never resolves
+  document.getElementById("btn-subscribe").addEventListener("click", () => {
+    const fb = document.getElementById("sub-feedback");
+    fb.textContent = "Sending...";
+    // Never resolves — classic broken async
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Voltra Electronics{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0e0e10;
+      --surface: #18181b;
+      --border: #27272a;
+      --text: #e4e4e7;
+      --muted: #71717a;
+      --accent: #f59e0b;
+      --danger: #ef4444;
+      --radius: 8px;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 60px;
+      position: sticky; top: 0;
+      background: rgba(14,14,16,.9);
+      backdrop-filter: blur(12px);
+      z-index: 100;
+    }
+
+    .logo {
+      font-family: 'Space Mono', monospace;
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--accent);
+      text-decoration: none;
+      letter-spacing: -.02em;
+    }
+
+    nav ul { list-style: none; display: flex; gap: 1.5rem; }
+    nav a { color: var(--muted); text-decoration: none; font-size: .9rem; transition: color .15s; }
+    nav a:hover, nav a.active { color: var(--text); }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: .6rem 1.4rem;
+      border-radius: var(--radius);
+      font-family: inherit; font-size: .875rem; font-weight: 500;
+      cursor: pointer; border: none; transition: all .15s;
+      text-decoration: none;
+    }
+    .btn-primary { background: var(--accent); color: #000; }
+    .btn-primary:hover { background: #fbbf24; }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { border-color: var(--text); color: var(--text); }
+
+    /* BROKEN button — looks like btn-primary but does nothing */
+    .btn-broken {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: .6rem 1.4rem;
+      border-radius: var(--radius);
+      font-family: inherit; font-size: .875rem; font-weight: 500;
+      cursor: pointer; border: none;
+      background: var(--accent); color: #000;
+    }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem;
+      text-align: center;
+      font-size: .8rem;
+      color: var(--muted);
+      margin-top: 4rem;
+    }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
+
+    /* RC badge indicator */
+    #rc-indicator {
+      position: fixed; bottom: 1rem; right: 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: .5rem .75rem;
+      font-family: 'Space Mono', monospace;
+      font-size: .7rem;
+      color: var(--muted);
+      z-index: 9999;
+      user-select: none;
+    }
+    #rc-indicator span { color: var(--accent); }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <nav>
+    <a href="/" class="logo">VOLTRA_</a>
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/shop">Shop</a></li>
+      <li><a href="/contact">Contact</a></li>
+      <li><a href="/checkout" class="btn btn-primary" style="padding:.4rem 1rem;font-size:.8rem">Cart (2)</a></li>
+    </ul>
+  </nav>
+
+  {% block content %}{% endblock %}
+
+  <footer>© 2025 Voltra Electronics · <a href="/dashboard" style="color:var(--accent);text-decoration:none">Analytics Dashboard</a></footer>
+
+  <div id="rc-indicator">tracking · session <span id="rc-sid">—</span></div>
+
+  <script src="/static/js/tracker.js"></script>
+  <script>
+    document.getElementById("rc-sid").textContent =
+      (sessionStorage.getItem("rc_session") || "—").slice(-6);
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

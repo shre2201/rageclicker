@@ -1,0 +1,128 @@
+{% extends "site/base.html" %}
+{% block title %}Contact — Voltra Electronics{% endblock %}
+{% block head %}
+<style>
+  .contact-wrap { display: grid; grid-template-columns: 1fr 1.4fr; gap: 3rem; padding: 4rem 0; }
+  @media(max-width:700px){ .contact-wrap{grid-template-columns:1fr;} }
+  .contact-info h1 { font-size: 1.8rem; font-weight: 300; letter-spacing:-.02em; margin-bottom: 1rem; }
+  .contact-info p { color: var(--muted); line-height: 1.7; margin-bottom: 2rem; }
+  .info-item { margin-bottom: 1.25rem; }
+  .info-label { font-family: 'Space Mono', monospace; font-size: .7rem; color: var(--accent); letter-spacing:.08em; text-transform: uppercase; margin-bottom: .25rem; }
+  .info-val { font-size: .9rem; }
+  /* Broken chat link */
+  .chat-link { color: var(--accent); cursor: pointer; text-decoration: underline; }
+
+  .contact-form {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2rem;
+  }
+  .contact-form h2 { font-size: 1rem; font-weight: 500; margin-bottom: 1.5rem; }
+  .field { margin-bottom: 1.25rem; }
+  .field label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: .4rem; }
+  .field input, .field textarea, .field select {
+    width: 100%;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: .6rem .9rem;
+    color: var(--text); font-family: inherit; font-size: .875rem;
+    outline: none; transition: border-color .15s;
+    resize: vertical;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--accent); }
+  .field select option { background: var(--surface); }
+  .submit-row { display: flex; align-items: center; gap: 1rem; margin-top: 1.5rem; }
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    display: none;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #form-status { font-size: .8rem; color: var(--muted); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="contact-wrap">
+    <div class="contact-info">
+      <h1>Get in touch</h1>
+      <p>Questions about an order? Product advice? Our team is here. Average response time is under 2 hours on weekdays.</p>
+      <div class="info-item">
+        <div class="info-label">Email</div>
+        <div class="info-val">support@voltra.in</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Phone</div>
+        <div class="info-val">+91 98765 43210</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Hours</div>
+        <div class="info-val">Mon–Sat, 9 AM – 7 PM IST</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Live chat</div>
+        <!-- BROKEN: chat widget does nothing -->
+        <div class="info-val"><span class="chat-link" id="chat-link">Start a chat session</span></div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Track order</div>
+        <!-- BROKEN: looks like link -->
+        <div class="info-val"><span class="chat-link" id="track-link">Enter order number</span></div>
+      </div>
+    </div>
+
+    <div class="contact-form">
+      <h2>Send a message</h2>
+      <div class="field">
+        <label>Your name</label>
+        <input type="text" id="name" placeholder="Rahul Sharma">
+      </div>
+      <div class="field">
+        <label>Email address</label>
+        <input type="email" id="email" placeholder="rahul@email.com">
+      </div>
+      <div class="field">
+        <label>Subject</label>
+        <select id="subject">
+          <option>Order issue</option>
+          <option>Return / refund</option>
+          <option>Product question</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Message</label>
+        <textarea id="message" rows="4" placeholder="Describe your issue..."></textarea>
+      </div>
+      <div class="submit-row">
+        <!-- BROKEN: submit spins forever -->
+        <button class="btn btn-primary" id="btn-submit" style="min-width:130px">Send message</button>
+        <div class="spinner" id="spinner"></div>
+        <span id="form-status"></span>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.getElementById("chat-link").addEventListener("click", () => {});
+  document.getElementById("track-link").addEventListener("click", () => {});
+
+  document.getElementById("btn-submit").addEventListener("click", () => {
+    const btn = document.getElementById("btn-submit");
+    const spinner = document.getElementById("spinner");
+    const status = document.getElementById("form-status");
+    btn.disabled = true;
+    btn.textContent = "Sending...";
+    spinner.style.display = "block";
+    status.textContent = "Please wait...";
+    // Never resolves — spinner runs forever
+  });
+</script>
+{% endblock %}
