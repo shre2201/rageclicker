@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: rageclicker
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --workers 1 --threads 2 --timeout 60
+    envVars:
+      - key: DB_PATH
+        value: /tmp/events.db
+      - key: PYTHON_VERSION
+        value: 3.11.0
