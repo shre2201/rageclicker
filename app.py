@@ -3,9 +3,13 @@ from flask_cors import CORS
 import sqlite3, json, uuid, time, os
 
 app = Flask(__name__)
-CORS(app)
 
-DB = "data/events.db"
+# Allow requests from any origin (tracker runs on the same domain in production)
+CORS(app, resources={r"/*": {"origins": "*"}})
+
+# On Render, use /tmp for writable storage (ephemeral but fine for a demo)
+# On a VPS with a mounted disk, set DB_PATH env var to a persistent path
+DB = os.environ.get("DB_PATH", "/tmp/events.db")
 
 def get_db():
     conn = sqlite3.connect(DB)
@@ -13,7 +17,7 @@ def get_db():
     return conn
 
 def init_db():
-    os.makedirs("data", exist_ok=True)
+    os.makedirs(os.path.dirname(DB), exist_ok=True) if os.path.dirname(DB) else None
     conn = get_db()
     conn.execute("""
         CREATE TABLE IF NOT EXISTS events (
@@ -213,9 +217,10 @@ def checkout():
 def dashboard():
     return render_template("dashboard.html")
 
+init_db()  # runs on import so gunicorn workers initialise the DB
+
 if __name__ == "__main__":
-    init_db()
     print("\n  Rage Click Detector running!")
-    print("  Demo site   → http://localhost:5000")
-    print("  Dashboard   → http://localhost:5000/dashboard\n")
-    app.run(debug=True, port=5000)
+    print("  Demo site   -> http://localhost:5000")
+    print("  Dashboard   -> http://localhost:5000/dashboard\n")
+    app.run(debug=False, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
