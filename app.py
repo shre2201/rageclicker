@@ -2,6 +2,8 @@ from flask import Flask, request, jsonify, render_template, Response
 from flask_cors import CORS
 import uuid, time, os, json, sqlite3
 import requests as http
+from threading import Thread
+from collections import deque
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
@@ -10,13 +12,39 @@ TURSO_URL   = os.environ.get("TURSO_URL", "").rstrip("/").replace("libsql://", "
 TURSO_TOKEN = os.environ.get("TURSO_TOKEN", "")
 USE_TURSO   = bool(TURSO_URL and TURSO_TOKEN)
 
-# ── Database abstraction ──────────────────────────────────────────
-# Turso: send SQL over HTTP to the Turso REST API
-# Local: plain sqlite3
+# ── Async write queue ─────────────────────────────────────────────
+# Events are queued in memory and flushed to Turso in a background
+# thread — so clicks return instantly and the site stays fast.
+_write_queue = deque()
 
-def turso_execute(sql, params=()):
-    """Execute one statement via Turso HTTP API, return rows list."""
-    # Turso expects params as positional "?" placeholders with typed values
+def _flush_worker():
+    while True:
+        time.sleep(2)          # batch every 2 seconds
+        batch = []
+        while _write_queue:
+            try:
+                batch.append(_write_queue.popleft())
+            except IndexError:
+                break
+        for stmt in batch:
+            try:
+                _turso_post(stmt["sql"], stmt["params"])
+            except Exception as e:
+                print(f"[queue] write error: {e}")
+
+def queue_write(sql, params=()):
+    """Queue a write for async flush. Reads still go direct."""
+    if USE_TURSO:
+        _write_queue.append({"sql": sql, "params": params})
+    else:
+        _sqlite_exec(sql, params)
+
+# Start background flush thread
+_t = Thread(target=_flush_worker, daemon=True)
+_t.start()
+
+# ── Turso HTTP API ────────────────────────────────────────────────
+def _turso_post(sql, params=()):
     typed = []
     for p in params:
         if isinstance(p, int):
@@ -28,52 +56,47 @@ def turso_execute(sql, params=()):
         else:
             typed.append({"type": "text",    "value": str(p)})
 
-    payload = {
-        "requests": [
-            {"type": "execute", "stmt": {"sql": sql, "args": typed}},
-            {"type": "close"}
-        ]
-    }
+    payload = {"requests": [
+        {"type": "execute", "stmt": {"sql": sql, "args": typed}},
+        {"type": "close"}
+    ]}
     resp = http.post(
         f"{TURSO_URL}/v2/pipeline",
-        headers={
-            "Authorization": f"Bearer {TURSO_TOKEN}",
-            "Content-Type":  "application/json"
-        },
-        json=payload,
-        timeout=10
+        headers={"Authorization": f"Bearer {TURSO_TOKEN}",
+                 "Content-Type": "application/json"},
+        json=payload, timeout=10
     )
     resp.raise_for_status()
     result = resp.json()["results"][0]
     if result.get("type") == "error":
         raise RuntimeError(result["error"]["message"])
-
-    rs = result.get("response", {}).get("result", {})
+    rs   = result.get("response", {}).get("result", {})
     cols = [c["name"] for c in rs.get("cols", [])]
     rows = []
     for row in rs.get("rows", []):
         rows.append(dict(zip(cols, [
-            None if c["type"] == "null" else
-            int(c["value"]) if c["type"] == "integer" else
-            float(c["value"]) if c["type"] == "float" else
+            None        if c["type"] == "null"    else
+            int(c["value"])   if c["type"] == "integer" else
+            float(c["value"]) if c["type"] == "float"   else
             c["value"]
             for c in row
         ])))
     return rows
 
+# ── SQLite fallback (local dev) ───────────────────────────────────
+def _sqlite_exec(sql, params=()):
+    os.makedirs("data", exist_ok=True)
+    conn = sqlite3.connect("data/events.db")
+    conn.row_factory = sqlite3.Row
+    cur  = conn.execute(sql, params)
+    rows = [dict(r) for r in (cur.fetchall() or [])]
+    conn.commit()
+    conn.close()
+    return rows
+
+# ── Unified read/write ────────────────────────────────────────────
 def db_exec(sql, params=()):
-    """Execute SQL, return list of row dicts."""
-    if USE_TURSO:
-        return turso_execute(sql, params)
-    else:
-        os.makedirs("data", exist_ok=True)
-        conn = sqlite3.connect("data/events.db")
-        conn.row_factory = sqlite3.Row
-        cur = conn.execute(sql, params)
-        rows = [dict(r) for r in (cur.fetchall() or [])]
-        conn.commit()
-        conn.close()
-        return rows
+    return _turso_post(sql, params) if USE_TURSO else _sqlite_exec(sql, params)
 
 def db_one(sql, params=()):
     rows = db_exec(sql, params)
@@ -98,26 +121,48 @@ def init_db():
 # ── Keep-alive ────────────────────────────────────────────────────
 @app.route("/ping")
 def ping():
-    return jsonify({"status": "alive", "ts": time.time()})
+    return jsonify({"status": "alive", "ts": time.time(),
+                    "db": "turso" if USE_TURSO else "sqlite",
+                    "queue_depth": len(_write_queue)})
 
-# ── Event ingestion ───────────────────────────────────────────────
+# ── Debug endpoint — cross-check data without Turso dashboard ─────
+@app.route("/debug")
+def debug():
+    try:
+        total_events   = db_one("SELECT COUNT(*) as c FROM events").get("c", 0)
+        total_sessions = db_one("SELECT COUNT(*) as c FROM sessions").get("c", 0)
+        recent = db_exec("SELECT session_id, page, element, dom_changed, ts FROM events ORDER BY ts DESC LIMIT 10")
+        return jsonify({
+            "ok": True,
+            "db_mode":       "turso" if USE_TURSO else "sqlite",
+            "turso_url":     TURSO_URL[:40] + "..." if TURSO_URL else "not set",
+            "queue_depth":   len(_write_queue),
+            "total_events":  total_events,
+            "total_sessions": total_sessions,
+            "last_10_events": recent
+        })
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e), "turso_url": TURSO_URL[:40] if TURSO_URL else "not set"}), 500
+
+# ── Event ingestion (fast — queued write) ─────────────────────────
 @app.route("/event", methods=["POST"])
 def ingest_event():
-    d = request.json or {}
+    d   = request.json or {}
     sid = d.get("session_id", str(uuid.uuid4()))
     ts  = d.get("ts", time.time())
-    db_exec(
+
+    queue_write(
         "INSERT INTO events (session_id,event_type,x,y,ts,element,page,dom_changed,scroll_y) VALUES (?,?,?,?,?,?,?,?,?)",
         (sid, d.get("event_type","click"), d.get("x",0), d.get("y",0), ts,
          d.get("element",""), d.get("page","/"),
          int(d.get("dom_changed",0)), d.get("scroll_y",0))
     )
-    db_exec(
+    queue_write(
         "INSERT INTO sessions (session_id,start_ts,last_ts) VALUES (?,?,?) "
         "ON CONFLICT(session_id) DO UPDATE SET last_ts=excluded.last_ts",
         (sid, ts, ts)
     )
-    return jsonify({"ok": True})
+    return jsonify({"ok": True})   # returns immediately
 
 # ── Analytics API ─────────────────────────────────────────────────
 @app.route("/api/clicks")
@@ -138,7 +183,7 @@ def get_sessions():
         GROUP BY s.session_id ORDER BY s.last_ts DESC LIMIT 100
     """)
     for r in rows:
-        r["duration_s"]  = round((r.get("last_ts") or 0) - (r.get("start_ts") or 0), 1)
+        r["duration_s"]   = round((r.get("last_ts") or 0) - (r.get("start_ts") or 0), 1)
         r["dead_clicks"]  = r.get("dead_clicks") or 0
         r["total_clicks"] = r.get("total_clicks") or 0
     return jsonify(rows)
@@ -149,7 +194,7 @@ def get_stats():
     frustrated = db_one("SELECT COUNT(*) as c FROM sessions WHERE frustrated=1").get("c", 0)
     total_cl   = db_one("SELECT COUNT(*) as c FROM events WHERE event_type='click'").get("c", 0)
     dead_cl    = db_one("SELECT COUNT(*) as c FROM events WHERE event_type='click' AND dom_changed=0").get("c", 0)
-    top_el     = db_one("SELECT element, COUNT(*) as c FROM events WHERE event_type='click' AND dom_changed=0 AND element!='' GROUP BY element ORDER BY c DESC LIMIT 1")
+    top_el     = db_one("SELECT element,COUNT(*) as c FROM events WHERE event_type='click' AND dom_changed=0 AND element!='' GROUP BY element ORDER BY c DESC LIMIT 1")
     return jsonify({
         "total_sessions":    total,
         "frustrated_sessions": frustrated,
@@ -180,21 +225,20 @@ def analyze_session(session_id):
         i += len(cluster) if len(cluster) > 1 else 1
 
     dead_clicks = sum(1 for c in clicks if not c["dom_changed"])
-    pages  = list(dict.fromkeys(e["page"] for e in events))
+    pages   = list(dict.fromkeys(e["page"] for e in events))
     u_turns = sum(1 for k in range(1, len(pages)-1) if pages[k] == pages[k-2])
 
     score      = min(1.0, rage_bursts * 0.4 + dead_clicks * 0.05 + u_turns * 0.2)
     frustrated = 1 if (rage_bursts >= 1 or dead_clicks >= 3) else 0
 
-    db_exec("UPDATE sessions SET frustrated=?,frustration_score=? WHERE session_id=?",
-            (frustrated, score, session_id))
+    queue_write("UPDATE sessions SET frustrated=?,frustration_score=? WHERE session_id=?",
+                (frustrated, score, session_id))
     return jsonify({"session_id": session_id, "rage_bursts": rage_bursts,
                     "dead_clicks": dead_clicks, "u_turns": u_turns,
                     "frustration_score": round(score, 2), "frustrated": bool(frustrated)})
 
 @app.route("/api/export")
 def export_csv():
-    """Download all labelled sessions as CSV for ML training."""
     rows = db_exec("""
         SELECT s.session_id, s.frustrated, s.frustration_score,
                COUNT(e.id) as total_clicks,
@@ -230,8 +274,9 @@ def dashboard(): return render_template("dashboard.html")
 init_db()
 
 if __name__ == "__main__":
-    print("\n  Rage Click Detector")
+    print(f"\n  DB mode: {'turso' if USE_TURSO else 'sqlite (local)'}")
     print("  Site      -> http://localhost:5000")
     print("  Dashboard -> http://localhost:5000/dashboard")
+    print("  Debug     -> http://localhost:5000/debug")
     print("  Export    -> http://localhost:5000/api/export\n")
     app.run(debug=False, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
